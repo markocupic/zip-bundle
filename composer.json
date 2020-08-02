@@ -1,6 +1,6 @@
 {
   "name": "markocupic/zip-bundle",
-  "description": "ZIP extension",
+  "description": "Provides a simple ZIP extension for zipping directories recursively.",
   "keywords": [
     "contao",
     "zip",
