@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace Markocupic\ZipBundle\Zip;
 
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class Zip
@@ -24,17 +25,14 @@ use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
  */
 class Zip
 {
-    /** @var bool */
-    private static $STRIP_SOURCE = false;
+    /** @var \ZipArchive */
+    private $zip;
 
     /** @var array */
     private $arrStorage = [];
 
-    /** @var \ZipArchive */
-    private $zip;
-
     /** @var string */
-    private $archiveFilename;
+    private $strStripSourcePath;
 
     /**
      * Zip constructor.
@@ -48,18 +46,19 @@ class Zip
             throw new \Exception('PHP Extension "ext-zip" not loaded.');
         }
 
+
         return $this;
     }
 
     /**
      * Strip the source path in the zip archive
      *
-     * @param bool $bln
+     * @param string $path
      * @return $this
      */
-    public function stripSourcePath(bool $bln): self
+    public function stripSourcePath(string $path): self
     {
-        static::$STRIP_SOURCE = $bln;
+        $this->strStripSourcePath = $path;
         return $this;
     }
 
@@ -67,38 +66,61 @@ class Zip
      * Zip directory recursively and store it to a predefined destination
      *
      * @param string $source
-     * @param string $destination
-     * @return bool
+     * @return $this
      * @throws \Exception
      */
-    public function zipDirRecursive(string $source, string $destination): bool
+    public function addDirRecursive(string $source): self
     {
         if (!is_dir($source))
         {
             throw new \Exception(sprintf('Source directory "%s" not found.', $source));
         }
 
-        if (!is_dir($destination))
+        $this->addToStorage($source, true);
+
+        return $this;
+    }
+
+    /**
+     * @param string $destinationPath
+     * @return bool
+     * @throws \Exception
+     */
+    public function run(string $destinationPath): bool
+    {
+        if ($this->zip($destinationPath))
         {
-            throw new \Exception(sprintf('Destination directory "%s" not found.', $destination));
+            $this->reset();
+
+            return true;
         }
 
-        $this->addToStorage($source);
-        if (!count($this->arrStorage) > 0)
+        return false;
+    }
+
+    /**
+     * @param string $filename
+     */
+    public function downloadArchive(string $filename)
+    {
+        if (!is_file($filename))
         {
-            return false;
+            throw new FileNotFoundException(sprintf('File "%s" not found.', $filename));
         }
+        $response = new Response(file_get_contents($filename));
+        $response->headers->set('Content-Type', 'application/zip');
+        $response->headers->set('Content-Disposition', 'attachment;filename="' . basename($filename) . '"');
+        $response->headers->set('Content-length', filesize($filename));
 
-        $this->zip($source, $destination)->close();
-
-        return true;
+        $response->send();
     }
 
     /**
      * @param $source
+     * @param bool $blnRecursive
      * @return $this
      */
-    private function addToStorage($source): self
+    private function addToStorage($source, $blnRecursive = false): self
     {
         if (!file_exists($source))
         {
@@ -106,23 +128,47 @@ class Zip
         }
 
         $source = realpath($source);
-        if (is_dir($source))
-        {
-            $iterator = new \RecursiveDirectoryIterator($source);
 
-            // Skip dot files while iterating
-            $iterator->setFlags(\RecursiveDirectoryIterator::SKIP_DOTS);
-            $files = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::SELF_FIRST);
-            foreach ($files as $objSplFileInfo)
+        if ($blnRecursive === true) // Pick files in folders and subfolders ($blnRecursive === true)
+        {
+            if (is_dir($source))
             {
-                $this->arrStorage[] = $objSplFileInfo->getRealPath();
+                $iterator = new \RecursiveDirectoryIterator($source);
+
+                // Skip dot files while iterating
+                $iterator->setFlags(\RecursiveDirectoryIterator::SKIP_DOTS);
+                $files = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::SELF_FIRST);
+                foreach ($files as $objSplFileInfo)
+                {
+                    $this->arrStorage[] = $objSplFileInfo->getRealPath();
+                }
+            }
+            else
+            {
+                if (is_file($source))
+                {
+                    $this->arrStorage[] = $source;
+                }
             }
         }
-        else
+        else // Pick only files and no folders and subfolder ($blnRecursive === false)
         {
             if (is_file($source))
             {
                 $this->arrStorage[] = $source;
+            }
+            else
+            {
+                foreach (scandir($source) as $key => $file)
+                {
+                    if (!in_array($file, [".", ".."]))
+                    {
+                        if (is_file($source . DIRECTORY_SEPARATOR . $file))
+                        {
+                            $this->arrStorage[] = $file;
+                        }
+                    }
+                }
             }
         }
 
@@ -130,16 +176,86 @@ class Zip
     }
 
     /**
-     * @return $this
+     * @return array
      */
-    private function close(): self
+    public function getStorage(): array
     {
-        if ($this->zip instanceof \ZipArchive)
+        return $this->arrStorage;
+    }
+
+    /**
+     * @param string $destination
+     * @return bool
+     * @throws \Exception
+     */
+    private function zip(string $destination): bool
+    {
+        if (!preg_match('/\.zip$/', $destination))
         {
-            $this->zip->close();
-            $this->reset();
+            throw new \Exception(
+                sprintf(
+                    'Illegal destination path defined "%s". Destination must be a valid path (f.ex. "file/path/to/archive.zip".',
+                    $destination
+                )
+            );
         }
-        return $this;
+
+        if (!is_dir(dirname($destination)))
+        {
+            throw new \Exception(sprintf('Destination directory "%s" not found.', $destination));
+        }
+
+        $this->zip = new \ZipArchive();
+        $this->zip->open($destination, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
+        // Check if $this->strStripSourcePath stands at the beginning of each file path
+        $blnStripSourcePath = false;
+        if (strlen((string) $this->strStripSourcePath))
+        {
+            $blnStripSourcePath = true;
+            foreach ($this->arrStorage as $res)
+            {
+                if (strpos($this->strStripSourcePath, $res) != 0)
+                {
+                    $blnStripSourcePath = false;
+                    break;
+                }
+            }
+        }
+
+        foreach ($this->arrStorage as $res)
+        {
+            if (is_dir($res))
+            {
+                // Add empty dir (and remove the source path)
+                if ($blnStripSourcePath === true)
+                {
+                    $this->zip->addEmptyDir(str_replace($this->strStripSourcePath . DIRECTORY_SEPARATOR, '', $res));
+                }
+                else
+                {
+                    $this->zip->addEmptyDir(ltrim($res, DIRECTORY_SEPARATOR));
+                }
+            }
+            else
+            {
+                if (is_file($res))
+                {
+                    // Add file (and remove the source path)
+                    if ($blnStripSourcePath === true)
+                    {
+                        $this->zip->addFromString(str_replace($this->strStripSourcePath . DIRECTORY_SEPARATOR, '', $res), file_get_contents($res));
+                    }
+                    else
+                    {
+                        $this->zip->addFromString(ltrim($res, DIRECTORY_SEPARATOR), file_get_contents($res));
+                    }
+                }
+            }
+        }
+        $this->zip->close();
+
+        return true;
     }
 
     /**
@@ -150,71 +266,8 @@ class Zip
     private function reset(): self
     {
         $this->zip = null;
-        $this->archiveFilename = null;
         $this->arrStorage = [];
-        return $this;
-    }
-
-    /**
-     * @param $source
-     * @param $destination
-     * @return $this
-     */
-    private function zip($source, $destination): self
-    {
-        $this->zip = new \ZipArchive();
-        $archivePath = $destination;
-        if (strlen((string) $this->archiveFilename))
-        {
-            $archivePath .= '/' . $this->archiveFilename;
-        }
-        else
-        {
-            $archivePath .= '/' . basename($source) . '.zip';
-        }
-        $this->zip->open($archivePath, \ZipArchive::CREATE);
-
-        foreach ($this->arrStorage as $res)
-        {
-            if (is_dir($res))
-            {
-                // Add empty dir (and remove the source path)
-                if (static::$STRIP_SOURCE)
-                {
-                    $this->zip->addEmptyDir(str_replace($source . '/', '', $res . '/'));
-                }
-                else
-                {
-                    $this->zip->addEmptyDir($res . '/');
-                }
-            }
-            else
-            {
-                if (is_file($res))
-                {
-                    // Add file (and remove the source path)
-                    if (static::$STRIP_SOURCE)
-                    {
-                        $this->zip->addFromString(str_replace($source . '/', '', $res), file_get_contents($res));
-                    }
-                    else
-                    {
-                        $this->zip->addFromString($res, file_get_contents($res));
-                    }
-                }
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param string $strFilename
-     * @return $this
-     */
-    public function saveAsFile(string $strFilename): self
-    {
-        $this->archiveFilename = $strFilename;
+        $this->strStripSourcePath = null;
         return $this;
     }
 
