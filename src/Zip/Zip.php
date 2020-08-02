@@ -30,8 +30,11 @@ class Zip
     /** @var array */
     private $arrStorage = [];
 
-    /** @var zip archive */
+    /** @var \ZipArchive */
     private $zip;
+
+    /** @var string */
+    private $archiveFilename;
 
     /**
      * Zip constructor.
@@ -42,7 +45,7 @@ class Zip
     {
         if (!extension_loaded('zip'))
         {
-            throw new \Exception('PHP Extension "zip" not loaded.');
+            throw new \Exception('PHP Extension "ext-zip" not loaded.');
         }
 
         return $this;
@@ -61,21 +64,32 @@ class Zip
     }
 
     /**
-     * Zip folder recursively and store it to a predefined destination
+     * Zip directory recursively and store it to a predefined destination
      *
      * @param string $source
      * @param string $destination
-     * @return $this
+     * @return bool
+     * @throws \Exception
      */
-    public function zipRecursive(string $source, string $destination): self
+    public function zipDirRecursive(string $source, string $destination): bool
     {
+        if (!is_dir($source))
+        {
+            throw new \Exception(sprintf('Source directory "%s" not found.', $source));
+        }
+
+        if (!is_dir($destination))
+        {
+            throw new \Exception(sprintf('Destination directory "%s" not found.', $destination));
+        }
+
         $this->addToStorage($source);
         if (!count($this->arrStorage) > 0)
         {
             return false;
         }
 
-        $this->zip()->close();
+        $this->zip($source, $destination)->close();
 
         return true;
     }
@@ -118,23 +132,47 @@ class Zip
     /**
      * @return $this
      */
-    public function close(): self
+    private function close(): self
     {
         if ($this->zip instanceof \ZipArchive)
         {
             $this->zip->close();
-            $this->zip = null;
+            $this->reset();
         }
         return $this;
     }
 
     /**
+     * Reset to defaults
+     *
      * @return $this
      */
-    private function zip(): self
+    private function reset(): self
+    {
+        $this->zip = null;
+        $this->archiveFilename = null;
+        $this->arrStorage = [];
+        return $this;
+    }
+
+    /**
+     * @param $source
+     * @param $destination
+     * @return $this
+     */
+    private function zip($source, $destination): self
     {
         $this->zip = new \ZipArchive();
-        $this->zip->open($destination, \ZipArchive::CREATE);
+        $archivePath = $destination;
+        if (strlen((string) $this->archiveFilename))
+        {
+            $archivePath .= '/' . $this->archiveFilename;
+        }
+        else
+        {
+            $archivePath .= '/' . basename($source) . '.zip';
+        }
+        $this->zip->open($archivePath, \ZipArchive::CREATE);
 
         foreach ($this->arrStorage as $res)
         {
@@ -161,12 +199,22 @@ class Zip
                     }
                     else
                     {
-                        $this->zip->addFromString(file_get_contents($res));
+                        $this->zip->addFromString($res, file_get_contents($res));
                     }
                 }
             }
         }
 
+        return $this;
+    }
+
+    /**
+     * @param string $strFilename
+     * @return $this
+     */
+    public function saveAsFile(string $strFilename): self
+    {
+        $this->archiveFilename = $strFilename;
         return $this;
     }
 

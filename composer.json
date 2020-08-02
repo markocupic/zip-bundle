@@ -21,7 +21,8 @@
     "source": "https://github.com/markocupic/zip-bundle"
   },
   "require": {
-    "contao/core-bundle": "^4.9"
+    "contao/core-bundle": "^4.9",
+    "ext-zip": "*"
   },
   "require-dev": {
     "contao/test-case": "^4.0",

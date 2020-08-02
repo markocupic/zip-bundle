@@ -8,5 +8,6 @@ This bundle provides a simple Zip class.
 ```php
 $zip = (new \Markocupic\ZipBundle\Zip\Zip())
     ->stripSourcePath(true)
-    ->zipRecursive('path/to/source/dir', 'path/to/target/dir');
+    ->saveAsFile('myZip.zip')
+    ->zipDirRecursive('path/to/source/dir', 'path/to/target/dir');
 ```
