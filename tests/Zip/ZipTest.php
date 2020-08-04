@@ -25,22 +25,47 @@ use Markocupic\ZipBundle\Zip\Zip;
  */
 class ZipTest extends ContaoTestCase
 {
+    /** @var Zip */
     private $zip;
 
+    /** @var array  */
     private $arrRes;
 
+    /** @var string */
     private $zipDestPath;
+
 
     public function setUp(): void
     {
+
         parent::setUp();
         $this->zip = new Zip();
         $this->arrRes = [
-            ['folder' => 'dir1'],
-            ['folder' => 'dir1/subdir1_1'],
-            ['folder' => 'dir1/subdir1_2'],
-            ['file' => 'dir1/subdir1_1/file_1_1_1.txt', 'content' => 'FooBar'],
-            ['file' => 'dir1/subdir1_2/file_1_1_2.txt', 'content' => 'FooBar'],
+            [
+                'folder' => 'dir1'
+            ],
+            [
+                'file'    => 'dir1/file_1_1.txt',
+                'content' => 'FooBar'
+            ],
+            [
+                'folder' => 'dir1/subdir1_1'
+            ],
+            [
+                'folder' => 'dir1/subdir1_2'
+            ],
+            [
+                'file'    => 'dir1/subdir1_1/file_1_1_1.txt',
+                'content' => 'FooBar'
+            ],
+            [
+                'file'    => 'dir1/subdir1_1/file_1_1_2.txt',
+                'content' => 'FooBar'
+            ],
+            [
+                'file'    => 'dir1/subdir1_2/file_1_2_1.txt',
+                'content' => 'FooBar'
+            ],
         ];
 
         $this->zipDestPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'myzip.zip';
@@ -65,6 +90,7 @@ class ZipTest extends ContaoTestCase
 
     public function tearDown(): void
     {
+
         // Delete files
         $this->delTempFiles(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->arrRes[0]['folder']);
         $this->delTempFiles($this->zipDestPath);
@@ -72,17 +98,59 @@ class ZipTest extends ContaoTestCase
 
     public function testInstantiation(): void
     {
+
         $this->assertInstanceOf(Zip::class, new Zip());
     }
 
-    public function testAddDirRecursive(): void
+    /**
+     * @throws \Exception
+     */
+    public function testAddFile()
     {
-        $this->zip->addDirRecursive(sys_get_temp_dir() . '/' . $this->arrRes[0]['folder']);
-        $this->assertTrue(count($this->arrRes) - 1 === count($this->zip->getStorage()));
+
+        $this->zip->addFile(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->arrRes[1]['file']);
+        $this->assertTrue(1 === count($this->zip->getStorage()));
     }
 
+    /**
+     * @throws \Exception
+     */
+    public function testAddDir()
+    {
+
+        $this->zip->addDir(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->arrRes[2]['folder']);
+        $this->assertTrue(2 === count($this->zip->getStorage()));
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function testAddDirRecursive()
+    {
+
+        // Depth: -1 (unlimited), files and directories
+        $this->zip->addDirRecursive(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->arrRes[0]['folder']);
+        $this->assertTrue(count($this->arrRes) - 1 === count($this->zip->getStorage()));
+
+        $this->zip->purgeStorage();
+
+        // Depth: 0, files and directories
+        $this->zip->addDirRecursive(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->arrRes[0]['folder'], 0);
+        $this->assertTrue(3 === count($this->zip->getStorage()));
+
+        $this->zip->purgeStorage();
+
+        // Depth: 0, files only
+        $this->zip->addDirRecursive(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->arrRes[0]['folder'], 0, true);
+        $this->assertTrue(1 === count($this->zip->getStorage()));
+    }
+
+    /**
+     * @throws \Exception
+     */
     public function testRun()
     {
+
         // Delete old files
         $this->delTempFiles($this->zipDestPath);
 
@@ -97,8 +165,13 @@ class ZipTest extends ContaoTestCase
         $this->assertTrue(true === filesize($this->zipDestPath) > 0);
     }
 
+    /**
+     * @param $res
+     * @return bool|void
+     */
     private function delTempFiles($res)
     {
+
         if (!file_exists($res))
         {
             return;

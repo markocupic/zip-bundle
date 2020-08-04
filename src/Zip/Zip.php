@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace Markocupic\ZipBundle\Zip;
 
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -41,11 +42,11 @@ class Zip
      */
     public function __construct()
     {
+
         if (!extension_loaded('zip'))
         {
             throw new \Exception('PHP Extension "ext-zip" not loaded.');
         }
-
 
         return $this;
     }
@@ -58,6 +59,7 @@ class Zip
      */
     public function stripSourcePath(string $path): self
     {
+
         $this->strStripSourcePath = $path;
         return $this;
     }
@@ -69,14 +71,56 @@ class Zip
      * @return $this
      * @throws \Exception
      */
-    public function addDirRecursive(string $source): self
+    public function addFile(string $source): self
     {
+
+        if (!is_file($source))
+        {
+            throw new \Exception(sprintf('File "%s" not found.', $source));
+        }
+
+        $this->addToStorage($source);
+
+        return $this;
+    }
+
+    /**
+     * Add files from the directory
+     *
+     * @param string $source
+     * @return $this
+     * @throws \Exception
+     */
+    public function addDir(string $source): self
+    {
+
         if (!is_dir($source))
         {
             throw new \Exception(sprintf('Source directory "%s" not found.', $source));
         }
 
-        $this->addToStorage($source, true);
+        $this->addToStorage($source, 0, true);
+
+        return $this;
+    }
+
+    /**
+     *
+     * @param string $source
+     * @param int $intDepth
+     * @param bool $blnFilesOnly
+     * @return $this
+     * @throws \Exception
+     */
+    public function addDirRecursive(string $source, int $intDepth = -1, bool $blnFilesOnly = false): self
+    {
+
+        if (!is_dir($source))
+        {
+            throw new \Exception(sprintf('Source directory "%s" not found.', $source));
+        }
+
+        $this->addToStorage($source, $intDepth, $blnFilesOnly);
 
         return $this;
     }
@@ -88,6 +132,7 @@ class Zip
      */
     public function run(string $destinationPath): bool
     {
+
         if ($this->zip($destinationPath))
         {
             $this->reset();
@@ -103,6 +148,7 @@ class Zip
      */
     public function downloadArchive(string $filename)
     {
+
         if (!is_file($filename))
         {
             throw new FileNotFoundException(sprintf('File "%s" not found.', $filename));
@@ -116,71 +162,72 @@ class Zip
     }
 
     /**
-     * @param $source
-     * @param bool $blnRecursive
+     * @return array
+     */
+    public function getStorage(): array
+    {
+
+        return $this->arrStorage;
+    }
+
+    /**
      * @return $this
      */
-    private function addToStorage($source, $blnRecursive = false): self
+    public function purgeStorage(): self
     {
+
+        $this->arrStorage = [];
+        return $this;
+    }
+
+    /**
+     * Add files/directories (recursive or not) to the storage
+     *
+     * @param string $source
+     * @param int $intDepth
+     * @param bool $blnFilesOnly
+     * @return $this
+     */
+    private function addToStorage(string $source, int $intDepth = -1, bool $blnFilesOnly = false): self
+    {
+
         if (!file_exists($source))
         {
             throw new FileNotFoundException(sprintf('File or folder "%s" not found', $source));
         }
 
-        $source = realpath($source);
-
-        if ($blnRecursive === true) // Pick files in folders and subfolders ($blnRecursive === true)
+        if (is_dir($source))
         {
-            if (is_dir($source))
+            $finder = new Finder();
+            if ($intDepth > -1)
             {
-                $iterator = new \RecursiveDirectoryIterator($source);
-
-                // Skip dot files while iterating
-                $iterator->setFlags(\RecursiveDirectoryIterator::SKIP_DOTS);
-                $files = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::SELF_FIRST);
-                foreach ($files as $objSplFileInfo)
+                if ($blnFilesOnly)
                 {
-                    $this->arrStorage[] = $objSplFileInfo->getRealPath();
+                    $finder->files();
                 }
+                $finder->depth('== ' . $intDepth);
             }
             else
             {
-                if (is_file($source))
+                if ($blnFilesOnly)
                 {
-                    $this->arrStorage[] = $source;
+                    $finder->files();
                 }
             }
+
+            foreach ($finder->in($source) as $file)
+            {
+                $this->arrStorage[] = $file->getRealPath();
+            }
         }
-        else // Pick only files and no folders and subfolder ($blnRecursive === false)
+        else
         {
-            if (is_file($source))
-            {
-                $this->arrStorage[] = $source;
-            }
-            else
-            {
-                foreach (scandir($source) as $key => $file)
-                {
-                    if (!in_array($file, [".", ".."]))
-                    {
-                        if (is_file($source . DIRECTORY_SEPARATOR . $file))
-                        {
-                            $this->arrStorage[] = $file;
-                        }
-                    }
-                }
-            }
+            $this->arrStorage[] = $source;
         }
+
+        $this->arrStorage = array_unique($this->arrStorage);
 
         return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getStorage(): array
-    {
-        return $this->arrStorage;
     }
 
     /**
@@ -190,6 +237,7 @@ class Zip
      */
     private function zip(string $destination): bool
     {
+
         if (!preg_match('/\.zip$/', $destination))
         {
             throw new \Exception(
@@ -265,8 +313,9 @@ class Zip
      */
     private function reset(): self
     {
+
         $this->zip = null;
-        $this->arrStorage = [];
+        $this->purgeStorage();
         $this->strStripSourcePath = null;
         return $this;
     }
