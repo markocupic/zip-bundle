@@ -1,9 +1,7 @@
 services:
-  _defaults: { autowire: true, autoconfigure: true, public: true }
 
   # Zip service
-  Markocupic\ZipBundle\Zip\Zip:
-    autowire: false
-    autoconfigure: false
+  markocupic.zip_bundle.zip.zip:
+    class: Markocupic\ZipBundle\Zip\Zip
     public: true
 
