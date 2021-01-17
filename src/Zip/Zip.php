@@ -36,6 +36,11 @@ class Zip
     private $strStripSourcePath;
 
     /**
+     * @var bool
+     */
+    private $ignoreDotFiles = true;
+
+    /**
      * Zip constructor.
      *
      * @throws \Exception
@@ -61,6 +66,17 @@ class Zip
     {
 
         $this->strStripSourcePath = $path;
+        return $this;
+    }
+
+    /**
+     * Ignore dot files/folders like .ecs, .gitattribute, etc.
+     *
+     * @param bool $blnIgnore
+     */
+    public function ignoreDotFiles(bool $blnIgnore): self
+    {
+        $this->ignoreDotFiles = $blnIgnore;
         return $this;
     }
 
@@ -199,6 +215,9 @@ class Zip
         if (is_dir($source))
         {
             $finder = new Finder();
+
+            $finder->ignoreDotFiles($this->ignoreDotFiles);
+
             if ($intDepth > -1)
             {
                 if ($blnFilesOnly)

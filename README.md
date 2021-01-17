@@ -6,8 +6,9 @@ This bundle provides a simple Zip class.
 
 # Usage
 ```php
-// Add dir recursive with unlimited depth and store it to a given zip-file
+// Add dir recursive with unlimited depth, add dot files and folders too and store it to a given zip-file
 $zip = (new \Markocupic\ZipBundle\Zip\Zip())
+    ->ignoreDotFiles(true)
     ->stripSourcePath('path/to/source/dir')
     ->addDirRecursive('path/to/source/dir')
     ->run('path/to/destination/dir/myZip.zip');
