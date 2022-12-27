@@ -20,9 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class Zip
 {
-    private ?\ZipArchive $zip;
+    private ?\ZipArchive $zip = null;
     private array $arrStorage = [];
-    private ?string $strStripSourcePath;
+    private ?string $strStripSourcePath = null;
     private bool $ignoreDotFiles = true;
 
     /**
@@ -215,7 +215,7 @@ class Zip
             $blnStripSourcePath = true;
 
             foreach ($this->arrStorage as $res) {
-                if (0 !== strpos($this->strStripSourcePath, $res)) {
+                if (0 !== strpos($res, $this->strStripSourcePath)) {
                     $blnStripSourcePath = false;
                     break;
                 }
