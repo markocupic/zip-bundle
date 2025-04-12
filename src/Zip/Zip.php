@@ -15,14 +15,17 @@ declare(strict_types=1);
 namespace Markocupic\ZipBundle\Zip;
 
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\Mime\MimeTypes;
+use Symfony\Component\String\UnicodeString;
 
 class Zip
 {
-    private ?\ZipArchive $zip = null;
+    private \ZipArchive|null $zip = null;
     private array $arrStorage = [];
-    private ?string $strStripSourcePath = null;
+    private string|null $strStripSourcePath = null;
     private bool $ignoreDotFiles = true;
 
     /**
@@ -125,15 +128,31 @@ class Zip
         return false;
     }
 
-    public function downloadArchive(string $filename): void
+    public function downloadArchive(string $filePath, string $fileName = '', bool $inline = false, bool $deleteFileAfterSend = false): void
     {
-        if (!is_file($filename)) {
-            throw new FileNotFoundException(sprintf('File "%s" not found.', $filename));
+        if (!is_file($filePath)) {
+            throw new FileNotFoundException(sprintf('File "%s" not found.', $filePath));
         }
-        $response = new Response(file_get_contents($filename));
-        $response->headers->set('Content-Type', 'application/zip');
-        $response->headers->set('Content-Disposition', 'attachment;filename="'.basename($filename).'"');
-        $response->headers->set('Content-length', filesize($filename));
+
+        $fileName = $fileName ?: basename($filePath);
+
+        $response = new BinaryFileResponse($filePath);
+        $response->setPrivate(); // public by default
+        $response->setAutoEtag();
+
+        $response->setContentDisposition(
+            $inline ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $fileName,
+            (new UnicodeString(basename($filePath)))->ascii()->toString(),
+        );
+
+        $mimeTypes = new MimeTypes();
+        $mimeType = $mimeTypes->guessMimeType($filePath);
+
+        $response->headers->addCacheControlDirective('must-revalidate');
+        $response->headers->set('Connection', 'close');
+        $response->headers->set('Content-Type', $mimeType);
+        $response->deleteFileAfterSend($deleteFileAfterSend);
 
         $response->send();
     }
@@ -169,15 +188,12 @@ class Zip
 
             $finder->ignoreDotFiles($this->ignoreDotFiles);
 
+            if ($blnFilesOnly) {
+                $finder->files();
+            }
+
             if ($intDepth > -1) {
-                if ($blnFilesOnly) {
-                    $finder->files();
-                }
                 $finder->depth('== '.$intDepth);
-            } else {
-                if ($blnFilesOnly) {
-                    $finder->files();
-                }
             }
 
             foreach ($finder->in($source) as $file) {
@@ -215,7 +231,7 @@ class Zip
             $blnStripSourcePath = true;
 
             foreach ($this->arrStorage as $res) {
-                if (0 !== strpos($res, $this->strStripSourcePath)) {
+                if (!str_starts_with($res, $this->strStripSourcePath)) {
                     $blnStripSourcePath = false;
                     break;
                 }
@@ -234,9 +250,9 @@ class Zip
                 if (is_file($res)) {
                     // Add file (and remove the source path)
                     if (true === $blnStripSourcePath) {
-                        $this->zip->addFromString(str_replace($this->strStripSourcePath.\DIRECTORY_SEPARATOR, '', $res), file_get_contents($res));
+                        $this->zip->addFile($res, str_replace($this->strStripSourcePath.\DIRECTORY_SEPARATOR, '', $res));
                     } else {
-                        $this->zip->addFromString(ltrim($res, \DIRECTORY_SEPARATOR), file_get_contents($res));
+                        $this->zip->addFile($res, ltrim($res, \DIRECTORY_SEPARATOR));
                     }
                 }
             }
