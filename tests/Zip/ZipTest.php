@@ -1,17 +1,16 @@
 <?php
 
-/**
- * This file is part of a markocupic Contao Bundle
- *
- * @copyright  Marko Cupic 2020 <m.cupic@gmx.ch>
- * @author     Marko Cupic
- * @package    zip bundle
- * @license    MIT
- * @see        https://github.com/markocupic/zip-bundle
- *
- */
-
 declare(strict_types=1);
+
+/*
+ * This file is part of Zip Bundle.
+ *
+ * (c) Marko Cupic <m.cupic@gmx.ch>
+ * @license MIT
+ * For the full copyright and license information,
+ * please view the LICENSE file that was distributed with this source code.
+ * @link https://github.com/markocupic/zip-bundle
+ */
 
 namespace Markocupic\ZipBundle\Tests\Zip;
 
@@ -25,15 +24,9 @@ use Markocupic\ZipBundle\Zip\Zip;
  */
 class ZipTest extends ContaoTestCase
 {
-    /** @var Zip */
-    private $zip;
-
-    /** @var array  */
-    private $arrRes;
-
-    /** @var string */
-    private $zipDestPath;
-
+    private Zip $zip;
+    private array $arrRes;
+    private string $zipDestPath;
 
     public function setUp(): void
     {

@@ -13,14 +13,14 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   tests:
-    name: PHP 7.4 Tests
+    name: PHP 8.2 Tests
     runs-on: ubuntu-latest
 
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.4
+          php-version: 8.2
           extensions: dom, fileinfo, filter, gd, hash, intl, json, mbstring, pcre, pdo_mysql, zlib
           tools: prestissimo, flex
           coverage: none
