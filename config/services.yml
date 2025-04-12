@@ -1,0 +1,12 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Markocupic\ZipBundle\:
+        resource: ../src/
+        #exclude: ../src/{DependencyInjection}
+
+    markocupic.zip_bundle.zip.zip:
+        class: Markocupic\ZipBundle\Zip\Zip
+        public: true

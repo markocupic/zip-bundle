@@ -5,7 +5,7 @@ declare(strict_types=1);
 /*
  * This file is part of Zip Bundle.
  *
- * (c) Marko Cupic 2022 <m.cupic@gmx.ch>
+ * (c) Marko Cupic 2025 <m.cupic@gmx.ch>
  * @license MIT
  * For the full copyright and license information,
  * please view the LICENSE file that was distributed with this source code.
@@ -41,8 +41,6 @@ class Plugin implements BundlePluginInterface, ConfigPluginInterface
      */
     public function registerContainerConfiguration(LoaderInterface $loader, array $managerConfig): void
     {
-        $loader->load(__DIR__.'/../Resources/config/parameters.yml');
-        $loader->load(__DIR__.'/../Resources/config/services.yml');
-        $loader->load(__DIR__.'/../Resources/config/listener.yml');
+        $loader->load(__DIR__.'/../../config/services.yml');
     }
 }

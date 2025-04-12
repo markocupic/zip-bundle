@@ -1,44 +1,42 @@
 {
-  "name": "markocupic/zip-bundle",
-  "description": "Provides a simple ZIP extension for zipping directories recursively.",
-  "keywords": [
-    "contao",
-    "zip",
-    "zip recursive"
-  ],
-  "type": "contao-bundle",
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Marko Cupic",
-      "email": "m.cupic@gmx.ch",
-      "homepage": "https://github.com/markocupic",
-      "role": "Developer"
+    "name": "markocupic/zip-bundle",
+    "description": "Provides a simple ZIP extension for zipping directories recursively.",
+    "keywords": [
+        "contao",
+        "zip",
+        "zip recursive"
+    ],
+    "type": "contao-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Marko Cupic",
+            "email": "m.cupic@gmx.ch",
+            "homepage": "https://github.com/markocupic",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/markocupic/zip-bundle/issues",
+        "source": "https://github.com/markocupic/zip-bundle"
+    },
+    "require": {
+        "php": "^8.2",
+        "contao/core-bundle": "^4.13 || ^5.0"
+    },
+    "require-dev": {
+        "contao/easy-coding-standard": "^5.0",
+        "contao/manager-plugin": "^2.3.1",
+        "contao/test-case": "^4.6",
+        "phpunit/phpunit": "^9.3",
+        "symfony/phpunit-bridge": "^5.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markocupic\\ZipBundle\\": "src/"
+        }
+    },
+    "extra": {
+        "contao-manager-plugin": "Markocupic\\ZipBundle\\ContaoManager\\Plugin"
     }
-  ],
-  "support": {
-    "issues": "https://github.com/markocupic/zip-bundle/issues",
-    "source": "https://github.com/markocupic/zip-bundle"
-  },
-  "require": {
-    "php": "^7.4 || ^8.0",
-    "contao/core-bundle": "^4.13 || ^5.0",
-    "ext-zip": "*"
-  },
-  "require-dev": {
-    "contao/easy-coding-standard": "^5.0",
-    "contao/manager-plugin": "^2.3.1",
-    "contao/test-case": "^4.6",
-    "phpunit/phpunit": "^9.3",
-    "symfony/phpunit-bridge": "^5.4"
-  },
-  "autoload": {
-    "psr-4": {
-      "Markocupic\\ZipBundle\\": "src/"
-    }
-  },
-  "extra": {
-    "contao-manager-plugin": "Markocupic\\ZipBundle\\ContaoManager\\Plugin"
-  }
-
 }
