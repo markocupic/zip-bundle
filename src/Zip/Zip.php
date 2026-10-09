@@ -24,8 +24,11 @@ use Symfony\Component\String\UnicodeString;
 class Zip
 {
     private \ZipArchive|null $zip = null;
+
     private array $arrStorage = [];
+
     private string|null $strStripSourcePath = null;
+
     private bool $ignoreDotFiles = true;
 
     /**
@@ -65,14 +68,14 @@ class Zip
     /**
      * Zip directory recursively and store it to a predefined destination.
      *
-     * @throws \Exception
-     *
      * @return $this
+     *
+     * @throws \Exception
      */
     public function addFile(string $source): self
     {
         if (!is_file($source)) {
-            throw new \Exception(sprintf('File "%s" not found.', $source));
+            throw new \Exception(\sprintf('File "%s" not found.', $source));
         }
 
         $this->addToStorage($source);
@@ -83,14 +86,14 @@ class Zip
     /**
      * Add files from the directory.
      *
-     * @throws \Exception
-     *
      * @return $this
+     *
+     * @throws \Exception
      */
     public function addDir(string $source): self
     {
         if (!is_dir($source)) {
-            throw new \Exception(sprintf('Source directory "%s" not found.', $source));
+            throw new \Exception(\sprintf('Source directory "%s" not found.', $source));
         }
 
         $this->addToStorage($source, 0, true);
@@ -99,14 +102,14 @@ class Zip
     }
 
     /**
-     * @throws \Exception
-     *
      * @return $this
+     *
+     * @throws \Exception
      */
     public function addDirRecursive(string $source, int $intDepth = -1, bool $blnFilesOnly = false): self
     {
         if (!is_dir($source)) {
-            throw new \Exception(sprintf('Source directory "%s" not found.', $source));
+            throw new \Exception(\sprintf('Source directory "%s" not found.', $source));
         }
 
         $this->addToStorage($source, $intDepth, $blnFilesOnly);
@@ -131,7 +134,7 @@ class Zip
     public function downloadArchive(string $filePath, string $fileName = '', bool $inline = false, bool $deleteFileAfterSend = false): void
     {
         if (!is_file($filePath)) {
-            throw new FileNotFoundException(sprintf('File "%s" not found.', $filePath));
+            throw new FileNotFoundException(\sprintf('File "%s" not found.', $filePath));
         }
 
         $fileName = $fileName ?: basename($filePath);
@@ -180,7 +183,7 @@ class Zip
     private function addToStorage(string $source, int $intDepth = -1, bool $blnFilesOnly = false): self
     {
         if (!file_exists($source)) {
-            throw new FileNotFoundException(sprintf('File or folder "%s" not found', $source));
+            throw new FileNotFoundException(\sprintf('File or folder "%s" not found', $source));
         }
 
         if (is_dir($source)) {
@@ -214,11 +217,11 @@ class Zip
     private function zip(string $destination): bool
     {
         if (!preg_match('/\.zip$/', $destination)) {
-            throw new \Exception(sprintf('Illegal destination path defined "%s". Destination must be a valid path (f.ex. "file/path/to/archive.zip".', $destination));
+            throw new \Exception(\sprintf('Illegal destination path defined "%s". Destination must be a valid path (f.ex. "file/path/to/archive.zip".', $destination));
         }
 
         if (!is_dir(\dirname($destination))) {
-            throw new \Exception(sprintf('Destination directory "%s" not found.', $destination));
+            throw new \Exception(\sprintf('Destination directory "%s" not found.', $destination));
         }
 
         $this->zip = new \ZipArchive();
